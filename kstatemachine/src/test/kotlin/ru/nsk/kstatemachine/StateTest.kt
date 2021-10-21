@@ -12,7 +12,7 @@ class StateTest : StringSpec({
     @Test
     fun stateSubclass() {
         val machine = createStateMachine {
-            // simple but little bit explicit, easy to forget addState() call
+            // simple but little explicit, easy to forget addState() call
             val subclassState = addState(SubclassState()) {
                 onEntry { println("Enter state with data: ${this@addState.dataField}") }
             }

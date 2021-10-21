@@ -40,9 +40,18 @@ interface IState : StateTransitionsHelper, VisitorAcceptor {
 }
 
 enum class ChildMode { EXCLUSIVE, PARALLEL }
+enum class HistoryType {
+    /** Records only immediate child states */
+    SHALLOW,
+
+    /** Records nested states also */
+    DEEP
+}
 
 /**
- * Simple state without data field that is used by typesafe transitions
+ * Simple state in most cases equal to [IState].
+ * Using this interface explicitly says that the state does not have a data field that is used by typesafe transitions.
+ * Helps to break compilation if a user specifies [DataState] as a target of non-data transition.
  */
 interface State : IState
 
@@ -68,6 +77,13 @@ interface IFinalState : IState {
 
 interface FinalState : IFinalState, State
 interface FinalDataState<out D> : IFinalState, DataState<D>
+
+/**
+ * Pseudo-state that represents the child state that the parent state was in the last time before exited.
+ */
+interface HistoryState : State {
+    val historyType: HistoryType
+}
 
 typealias StateBlock<S> = S.() -> Unit
 
@@ -152,3 +168,6 @@ fun IState.finalState(name: String? = null, init: StateBlock<FinalState>? = null
 
 fun <D> IState.finalDataState(name: String? = null, init: StateBlock<FinalDataState<D>>? = null) =
     addFinalState(DefaultFinalDataState(name), init)
+
+fun IState.historyState(name: String? = null, historyType: HistoryType = HistoryType.SHALLOW) =
+    addState(DefaultHistoryState(name, historyType))

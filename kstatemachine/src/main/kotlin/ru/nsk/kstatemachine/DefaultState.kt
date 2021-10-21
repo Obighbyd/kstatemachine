@@ -48,6 +48,7 @@ open class BaseStateImpl(override val name: String?, override val childMode: Chi
     override val initialState get() = _initialState
 
     override var parent: InternalState? = null
+    protected val historyState: HistoryState? get() = states.filterIsInstance<HistoryState>().singleOrNull()
 
     override val machine get() = if (this is StateMachine) this else requireParent().machine
 
@@ -73,6 +74,8 @@ open class BaseStateImpl(override val name: String?, override val childMode: Chi
         check(!machine.isRunning) { "Can not add state after state machine started" }
         if (childMode == ChildMode.PARALLEL)
             require(state !is FinalState) { "Can not add FinalState in parallel child mode" }
+        if (state is HistoryState)
+            require(historyState == null) { "Can not add more than one HistoryState" }
 
         state.name?.let {
             require(findState(it, recursive = false) == null) { "State with name $it already exists" }
@@ -278,4 +281,14 @@ open class DefaultFinalState(name: String? = null) : DefaultState(name), FinalSt
 
 open class DefaultFinalDataState<out D>(name: String? = null) : DefaultDataState<D>(name), FinalDataState<D> {
     override fun <E : Event> addTransition(transition: Transition<E>) = super<FinalDataState>.addTransition(transition)
+}
+
+class DefaultHistoryState(name: String? = null, override val historyType: HistoryType = HistoryType.SHALLOW) :
+    BaseStateImpl(name, ChildMode.EXCLUSIVE), HistoryState {
+    override fun <S : IState> addState(state: S, init: StateBlock<S>?) =
+        throw UnsupportedOperationException("HistoryState can not have child states")
+
+
+    override fun <E : Event> addTransition(transition: Transition<E>) =
+        throw UnsupportedOperationException("HistoryState can not have transitions")
 }
